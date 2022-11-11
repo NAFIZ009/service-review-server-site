@@ -39,3 +39,17 @@ app.get('/reviews',async (req,res)=>{
 
     }
 });
+
+app.get('/reviews/:email',async (req,res)=>{
+    try{
+        const data=client.db('videoWalah').collection('review');
+        const email=req.params.email;
+        const query={email: email};
+        const cursor=await data.find(query);
+        const review=await cursor.toArray();
+        console.log(review)
+        res.send(review);  
+    }catch{
+
+    }
+});
