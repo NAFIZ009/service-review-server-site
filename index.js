@@ -53,3 +53,15 @@ app.get('/reviews/:email',async (req,res)=>{
 
     }
 });
+
+app.delete('/reviews/:id',async (req,res)=>{
+    try{
+        const data=client.db('videoWalah').collection('review');
+        const id=req.params.id;
+        const query={_id: ObjectId(id)};
+        const result=await data.deleteOne(query);
+        res.send(result);  
+    }catch{
+
+    }
+});
