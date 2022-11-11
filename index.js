@@ -27,3 +27,15 @@ app.get('/services',async (req,res)=>{
 
     }
 });
+
+app.get('/reviews',async (req,res)=>{
+    try{
+        const data=client.db('videoWalah').collection('review');
+        const cursor=await data.find({});
+        const review=await cursor.toArray();
+        console.log(req.headers)
+        res.send(review);  
+    }catch{
+
+    }
+});
