@@ -65,3 +65,14 @@ app.delete('/reviews/:id',async (req,res)=>{
 
     }
 });
+
+app.post('/reviews',async (req,res)=>{
+    const givenData=req.body;
+    try{
+        const data=client.db('videoWalah').collection('review');
+        const review=await data.insertOne(givenData);
+        res.send(review);  
+    }catch{
+
+    }
+});
