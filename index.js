@@ -83,12 +83,6 @@ app.get('/service/:email',async (req,res)=>{
 
     }
 })
-
-
-
-
-
-
 app.post('/services',async (req,res)=>{
     try{
         const service=req.body;
@@ -101,14 +95,14 @@ app.post('/services',async (req,res)=>{
 
 app.get('/reviews/:service',async (req,res)=>{
     try{
-        
         const query={
             service:req.params.service
         }
         const cursor=await reviewData.find(query);
         const review=await cursor.toArray();
-        console.log(review)
-        res.send(review);  
+        const cursor2=await reviewData.find(query).sort({_id:-1});
+        const review2=await cursor2.toArray();
+        res.send(review2);  
     }catch{
 
     }
