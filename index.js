@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const bodyParser = require('body-parser');
+const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const app = express();
 const port=process.env.PORT||5000;
@@ -12,10 +13,38 @@ require('dotenv').config();
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@clustervideowalah.6bieeyw.mongodb.net/?retryWrites=true&w=majority`;
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 
+
+const serviceData=client.db('videoWalah').collection('services');
+const reviewData=client.db('videoWalah').collection('review');
+
+const verifyJWT=(req,res,next)=>{
+    const authHeader=req.headers.authorization;
+    
+    if(!authHeader){
+       return res.status(401).send("Unauthorized")
+    }
+    const token=authHeader.split(' ')[1];
+    
+    jwt.verify(token,process.env.DB_SEC,function(err,decoded){
+        if(err){
+          return  res.status(401).send("Unauthorized")
+        }
+        req.decoded=decoded;
+        next();
+    })
+}
+
+
+app.post('/jwt',(req,res)=>{
+    const user=req.body;
+    console.log(user);
+    const token=jwt.sign(user,process.env.DB_SEC,{expiresIn:'1hr'});
+    res.send({token});
+})
+
 app.get('/services',async (req,res)=>{
     try{
-        const data=client.db('videoWalah').collection('services');
-        const cursor=await data.find({});
+        const cursor=await serviceData.find({});
         
         if(req.headers.path=="home"){
             const services=await cursor.limit(3).toArray();
@@ -29,47 +58,70 @@ app.get('/services',async (req,res)=>{
 
     }
 });
-app.get('/services/:email',async (req,res)=>{
+app.get('/services/:id',async (req,res)=>{
     try{
-        const data=client.db('videoWalah').collection('services');
-
-        const cursor=await data.find({mail:req.params.email});
+        const cursor=await serviceData.find({_id:ObjectId(req.params.id)});
         const services=await cursor.toArray();
         res.send(services);
-        
     }catch{
 
     }
 });
+
+
+
+app.get('/service/:email',async (req,res)=>{
+    try{
+        const email=req.params.email;
+        const query={
+            mail:email
+        }
+        const cursor=await serviceData.find(query);
+        const service=await cursor.toArray();
+        res.send(service);
+    }catch{
+
+    }
+})
+
+
+
+
+
+
 app.post('/services',async (req,res)=>{
     try{
-        const data=client.db('videoWalah').collection('services');
         const service=req.body;
-        const cursor=await data.insertOne(service);
+        const cursor=await serviceData.insertOne(service);
         res.send(cursor);
     }catch{
 
     }
 });
 
-app.get('/reviews',async (req,res)=>{
+app.get('/reviews/:service',async (req,res)=>{
     try{
-        const data=client.db('videoWalah').collection('review');
-        const cursor=await data.find({});
+        
+        const query={
+            service:req.params.service
+        }
+        const cursor=await reviewData.find(query);
         const review=await cursor.toArray();
-        console.log(req.headers)
+        console.log(review)
         res.send(review);  
     }catch{
 
     }
 });
 
-app.get('/reviews/:email',async (req,res)=>{
+app.get('/review/:email',verifyJWT,async (req,res)=>{
+    if(req.decoded.email!==req.params.email){
+        return  res.status(401).send({error:'unauthorized'});
+    }
     try{
-        const data=client.db('videoWalah').collection('review');
         const email=req.params.email;
         const query={email: email};
-        const cursor=await data.find(query);
+        const cursor=await reviewData.find(query);
         const review=await cursor.toArray();
         console.log(review)
         res.send(review);  
@@ -80,10 +132,9 @@ app.get('/reviews/:email',async (req,res)=>{
 
 app.delete('/reviews/:id',async (req,res)=>{
     try{
-        const data=client.db('videoWalah').collection('review');
         const id=req.params.id;
         const query={_id: ObjectId(id)};
-        const result=await data.deleteOne(query);
+        const result=await reviewData.deleteOne(query);
         res.send(result);  
     }catch{
 
@@ -93,7 +144,6 @@ app.delete('/reviews/:id',async (req,res)=>{
 
 app.put('/reviews/:id',async (req,res)=>{
     try{
-        const data=client.db('videoWalah').collection('review');
         const id=req.params.id;
         const body=req.body;
         // console.log(body);
@@ -103,7 +153,7 @@ app.put('/reviews/:id',async (req,res)=>{
                 review:body.rev
             }
         }
-        const result=await data.updateOne(query,updatedData);
+        const result=await reviewData.updateOne(query,updatedData);
         res.send(result);  
     }catch{
 
@@ -113,8 +163,7 @@ app.put('/reviews/:id',async (req,res)=>{
 app.post('/reviews',async (req,res)=>{
     const givenData=req.body;
     try{
-        const data=client.db('videoWalah').collection('review');
-        const review=await data.insertOne(givenData);
+        const review=await reviewData.insertOne(givenData);
         res.send(review);  
     }catch{
 
